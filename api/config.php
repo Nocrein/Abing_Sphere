@@ -9,7 +9,7 @@ define('ADMIN_EMAIL', 'jeramayabing@gmail.com');
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 587);
 define('SMTP_USER', 'jeramayabing@gmail.com');
-define('SMTP_PASS', 'YOUR_GMAIL_APP_PASSWORD'); // <-- Replace with Gmail App Password
+define('SMTP_PASS', 'admin'); // <-- Replace with Gmail App Password
 
 // CORS headers
 header('Access-Control-Allow-Origin: *');
