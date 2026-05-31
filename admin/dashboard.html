@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — ArtSphere Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/admin.css" />
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-mark">◎</span>
+      <span>ArtSphere</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-view="dashboard" onclick="switchView('dashboard', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item" data-view="artworks" onclick="switchView('artworks', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Artworks
+      </a>
+      <a href="#" class="nav-item" data-view="messages" onclick="switchView('messages', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Messages
+        <span class="badge" id="unreadBadge" style="display:none"></span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <span id="adminEmail" class="admin-email"></span>
+      <button onclick="logout()" class="logout-btn">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="admin-main">
+    <header class="admin-header">
+      <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        <span></span><span></span><span></span>
+      </button>
+      <h2 class="page-title" id="pageTitle">Dashboard</h2>
+      <a href="../index.html" target="_blank" class="view-site-btn">View Site ↗</a>
+    </header>
+
+    <!-- DASHBOARD VIEW -->
+    <div class="view active" id="view-dashboard">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card skeleton"></div>
+        <div class="stat-card skeleton"></div>
+        <div class="stat-card skeleton"></div>
+        <div class="stat-card skeleton"></div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Recent Artworks</h3>
+            <button onclick="switchView('artworks')" class="panel-link">Manage all →</button>
+          </div>
+          <div class="recent-artworks" id="recentArtworks"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h3>Recent Messages</h3>
+            <button onclick="switchView('messages')" class="panel-link">View all →</button>
+          </div>
+          <div class="recent-messages" id="recentMessages"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTWORKS VIEW -->
+    <div class="view" id="view-artworks">
+      <div class="view-toolbar">
+        <button class="btn-primary" onclick="openArtworkModal()">+ Upload Artwork</button>
+      </div>
+      <div class="artwork-admin-grid" id="artworkAdminGrid">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+      <div class="pagination" id="artworkPagination"></div>
+    </div>
+
+    <!-- MESSAGES VIEW -->
+    <div class="view" id="view-messages">
+      <div class="messages-list" id="messagesList">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+      <div class="pagination" id="msgPagination"></div>
+    </div>
+  </main>
+
+  <!-- ARTWORK MODAL -->
+  <div class="modal-overlay" id="artworkModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Upload Artwork</h3>
+        <button class="modal-close" onclick="closeArtworkModal()">✕</button>
+      </div>
+      <form id="artworkForm" onsubmit="submitArtwork(event)" enctype="multipart/form-data">
+        <input type="hidden" id="artworkId">
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="artFile" name="image" accept="image/*" onchange="previewImage(this)">
+          <div class="upload-prompt" id="uploadPrompt">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>Drop image here or <span>browse</span></p>
+            <small>JPG, PNG, WEBP up to 10MB</small>
+          </div>
+          <img id="imagePreview" src="" alt="" style="display:none">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Title *</label>
+            <input type="text" id="artTitle" name="title" required>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <input type="text" id="artCategory" name="category" placeholder="e.g. Painting, Digital, Sketch">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="artDesc" name="description" rows="3" placeholder="Describe this artwork…"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Price (₱)</label>
+            <input type="number" id="artPrice" name="price" min="0" step="0.01" placeholder="0 = inquire for price">
+          </div>
+          <div class="form-group">
+            <label>Availability</label>
+            <select id="artAvailable" name="available">
+              <option value="1">Available</option>
+              <option value="0">Sold / Not Available</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" onclick="closeArtworkModal()" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary" id="artSubmitBtn">Upload</button>
+        </div>
+        <div class="form-feedback" id="artFeedback"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MESSAGE DETAIL MODAL -->
+  <div class="modal-overlay" id="messageModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Message</h3>
+        <button class="modal-close" onclick="closeMessageModal()">✕</button>
+      </div>
+      <div id="messageDetail"></div>
+      <div class="modal-actions">
+        <button onclick="closeMessageModal()" class="btn-secondary">Close</button>
+        <a id="replyBtn" href="" class="btn-primary">Reply via Email</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRM -->
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal small">
+      <div class="modal-header">
+        <h3>Delete Artwork</h3>
+        <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+      </div>
+      <p style="color:#666;margin:16px 0">Are you sure? This cannot be undone.</p>
+      <div class="modal-actions">
+        <button onclick="closeDeleteModal()" class="btn-secondary">Cancel</button>
+        <button onclick="confirmDelete()" class="btn-danger" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>

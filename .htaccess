@@ -1,0 +1,32 @@
+Options -Indexes
+Options +FollowSymLinks
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Allow direct access to api folder
+    RewriteRule ^api/ - [L]
+
+    # Allow direct access to uploads
+    RewriteRule ^uploads/ - [L]
+
+    # Allow direct access to assets
+    RewriteRule ^assets/ - [L]
+
+    # Route everything else to index.html (SPA)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+# Max upload size
+php_value upload_max_filesize 10M
+php_value post_max_size 12M
+php_value max_execution_time 60

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — ArtSphere</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/admin.css" />
+</head>
+<body class="auth-page">
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <span class="logo-mark">◎</span>
+        <h1>ArtSphere</h1>
+        <p>Admin Portal</p>
+      </div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" value="jeramayabing@gmail.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-wrap">
+            <input type="password" name="password" required autocomplete="current-password" id="pwInput">
+            <button type="button" class="toggle-pw" onclick="togglePw()">
+              <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn-login" id="loginBtn">
+          <span>Sign In</span>
+        </button>
+        <div class="auth-error" id="authError"></div>
+      </form>
+
+      <a href="../index.html" class="back-site">← Back to site</a>
+    </div>
+  </div>
+
+  <script>
+    const API = '../api';
+
+    if (localStorage.getItem('as_token')) {
+      window.location.href = 'dashboard.html';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      const errEl = document.getElementById('authError');
+      const form = e.target;
+      errEl.textContent = '';
+      btn.disabled = true;
+      btn.querySelector('span').textContent = 'Signing in…';
+
+      try {
+        const res = await fetch(`${API}/auth.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: form.email.value,
+            password: form.password.value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        localStorage.setItem('as_token', data.token);
+        localStorage.setItem('as_user', JSON.stringify(data.user));
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        errEl.textContent = err.message;
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'Sign In';
+      }
+    }
+
+    function togglePw() {
+      const input = document.getElementById('pwInput');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+  </script>
+</body>
+</html>
