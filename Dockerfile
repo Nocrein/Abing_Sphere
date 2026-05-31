@@ -1,16 +1,9 @@
-FROM php:8.2-apache
+FROM php:8.2-cli
 
-# Disable ALL MPMs first, then enable only prefork
-RUN a2dismod mpm_event mpm_worker || true
-RUN a2enmod mpm_prefork
+WORKDIR /app
 
-# Install PHP extensions
+COPY . .
+
 RUN docker-php-ext-install mysqli pdo pdo_mysql
 
-# Copy project files
-COPY . /var/www/html/
-
-# Fix Railway dynamic port
-RUN sed -i 's/80/${PORT}/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
-
-EXPOSE 80
+CMD ["sh", "-c", "php -S 0.0.0.0:${PORT}"]
