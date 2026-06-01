@@ -35,6 +35,7 @@ function switchView(name, el) {
   document.getElementById('sidebar').classList.remove('open');
 
   if (name === 'dashboard') loadDashboard();
+  else if (name === 'profile') loadProfile();
   else if (name === 'artworks') loadArtworks();
   else if (name === 'messages') loadMessages();
 }
@@ -363,3 +364,76 @@ function timeAgo(dateStr) {
 
 // ── INIT ──────────────────────────────────────────────────
 loadDashboard();
+
+// ── PROFILE ───────────────────────────────────────────────
+async function loadProfile() {
+  try {
+    const res = await fetch(`${API}/profile.php`, { headers: authHeaders() });
+    const p   = await res.json();
+    if (!p || !p.id) return;
+    document.getElementById('profileName').value    = p.name    || '';
+    document.getElementById('profileTagline').value = p.tagline || '';
+    document.getElementById('profileBio').value     = p.bio     || '';
+    if (p.photo) {
+      const img = document.getElementById('profilePhotoPreview');
+      img.src = `/uploads/profile/${p.photo}`;
+      img.style.display = 'block';
+      document.getElementById('profilePlaceholder').style.display = 'none';
+    }
+  } catch (e) { console.error('Profile load error:', e); }
+}
+
+function previewProfilePhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.getElementById('profilePhotoPreview');
+      img.src = e.target.result;
+      img.style.display = 'block';
+      document.getElementById('profilePlaceholder').style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const btn      = document.getElementById('profileSaveBtn');
+  const feedback = document.getElementById('profileFeedback');
+  btn.disabled   = true;
+  btn.textContent = 'Saving…';
+  feedback.textContent = '';
+
+  const formData = new FormData();
+  formData.append('name',    document.getElementById('profileName').value);
+  formData.append('tagline', document.getElementById('profileTagline').value);
+  formData.append('bio',     document.getElementById('profileBio').value);
+  const photoFile = document.getElementById('profilePhotoInput').files[0];
+  if (photoFile) formData.append('photo', photoFile);
+
+  try {
+    const res = await fetch(`${API}/profile.php`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to save');
+    feedback.style.color = '#2a7a4b';
+    feedback.textContent = '✓ Profile saved successfully!';
+    showToast('Profile updated!', 'success');
+  } catch (err) {
+    feedback.style.color = '#c0392b';
+    feedback.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Profile';
+  }
+}
+
+// Extend switchView to handle profile
+const _origSwitchView = switchView;
+// Patch: load profile when tab is opened
+document.addEventListener('DOMContentLoaded', () => {
+  // Already called at bottom of file — just load profile here too
+});

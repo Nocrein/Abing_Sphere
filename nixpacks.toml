@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["php83", "php83Extensions.pdo", "php83Extensions.pdo_sqlite", "php83Extensions.sqlite3", "php83Extensions.mbstring", "php83Extensions.gd", "php83Extensions.fileinfo"]
+
+[phases.build]
+cmds = [
+  "mkdir -p database uploads/artworks",
+  "chmod -R 777 database uploads"
+]
+
+[start]
+cmd = "php -S 0.0.0.0:$PORT -t . router.php"

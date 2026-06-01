@@ -419,3 +419,11 @@ body {
   .page-hero { padding: 100px 20px 40px; }
   .contact-form { padding: 24px; }
 }
+
+/* ── ARTIST PHOTO (about section) ── */
+.about-media { position: relative; width: 220px; height: 220px; flex-shrink: 0; }
+#artistPhoto {
+  width: 220px; height: 220px; border-radius: 50%; object-fit: cover;
+  box-shadow: 0 8px 32px rgba(232,130,90,0.25);
+  border: 4px solid white;
+}

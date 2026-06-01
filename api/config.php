@@ -1,32 +1,34 @@
 <?php
-define('DB_PATH', __DIR__ . '/../database/artsphere.db');
-define('UPLOAD_PATH', __DIR__ . '/../uploads/artworks/');
-define('UPLOAD_URL', '../uploads/artworks/');
-define('JWT_SECRET', 'artsphere_secret_key_change_in_production_2024');
+// Support Railway volume or fallback to local paths
+$dataDir = getenv('RAILWAY_VOLUME_MOUNT_PATH') ?: __DIR__ . '/..';
+
+define('DB_PATH',     $dataDir . '/database/artsphere.db');
+define('UPLOAD_PATH', $dataDir . '/uploads/artworks/');
+define('PROFILE_PATH', $dataDir . '/uploads/profile/');
+define('UPLOAD_URL',  '/uploads/artworks/');
+define('PROFILE_URL', '/uploads/profile/');
+define('JWT_SECRET',  getenv('JWT_SECRET') ?: 'artsphere_jwt_secret_2024');
 define('ADMIN_EMAIL', 'jeramayabing@gmail.com');
 
-// Email config - update with your Gmail App Password
 define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
+define('SMTP_PORT', 465);
 define('SMTP_USER', 'jeramayabing@gmail.com');
-define('SMTP_PASS', 'admin'); // <-- Replace with Gmail App Password
+define('SMTP_PASS', getenv('GMAIL_APP_PASSWORD') ?: '');
 
-// CORS headers
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
 
 function getDB() {
     static $db = null;
     if ($db === null) {
         $dir = dirname(DB_PATH);
-        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        if (!is_dir($dir)) mkdir($dir, 0777, true);
+        if (!is_dir(UPLOAD_PATH)) mkdir(UPLOAD_PATH, 0777, true);
+        if (!is_dir(PROFILE_PATH)) mkdir(PROFILE_PATH, 0777, true);
         $db = new PDO('sqlite:' . DB_PATH);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $db->exec('PRAGMA journal_mode=WAL');
@@ -43,7 +45,6 @@ function initDB($db) {
             password TEXT NOT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS artworks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
@@ -55,7 +56,6 @@ function initDB($db) {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -67,48 +67,48 @@ function initDB($db) {
             is_read INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS profile (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT DEFAULT 'The Artist',
+            bio TEXT DEFAULT '',
+            tagline TEXT DEFAULT '',
+            photo TEXT DEFAULT '',
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
     ");
 
-    // Seed admin user
+    // Seed admin
     $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
     $stmt->execute([ADMIN_EMAIL]);
     if (!$stmt->fetch()) {
-        $hash = password_hash('admin', PASSWORD_BCRYPT);
         $db->prepare("INSERT INTO users (email, password) VALUES (?, ?)")
-           ->execute([ADMIN_EMAIL, $hash]);
+           ->execute([ADMIN_EMAIL, password_hash('admin', PASSWORD_BCRYPT)]);
+    }
+
+    // Seed profile row
+    $p = $db->query("SELECT id FROM profile LIMIT 1")->fetch();
+    if (!$p) {
+        $db->exec("INSERT INTO profile (name, bio, tagline) VALUES ('The Artist', 'Welcome to my art archive.', 'Creating moments into art')");
     }
 }
 
-function jsonResponse($data, $code = 200) {
-    http_response_code($code);
-    echo json_encode($data);
-    exit();
-}
-
-function errorResponse($msg, $code = 400) {
-    jsonResponse(['error' => $msg], $code);
-}
+function jsonResponse($data, $code = 200) { http_response_code($code); echo json_encode($data); exit(); }
+function errorResponse($msg, $code = 400) { jsonResponse(['error' => $msg], $code); }
 
 function generateToken($userId) {
-    $payload = [
-        'sub' => $userId,
-        'iat' => time(),
-        'exp' => time() + (24 * 3600)
-    ];
-    $header = base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT']));
-    $payload_enc = base64_encode(json_encode($payload));
-    $sig = hash_hmac('sha256', "$header.$payload_enc", JWT_SECRET, true);
-    $sig_enc = base64_encode($sig);
-    return "$header.$payload_enc.$sig_enc";
+    $header  = base64_encode(json_encode(['alg'=>'HS256','typ'=>'JWT']));
+    $payload = base64_encode(json_encode(['sub'=>$userId,'iat'=>time(),'exp'=>time()+86400]));
+    $sig     = base64_encode(hash_hmac('sha256', "$header.$payload", JWT_SECRET, true));
+    return "$header.$payload.$sig";
 }
 
 function verifyToken($token) {
     $parts = explode('.', $token);
     if (count($parts) !== 3) return false;
-    [$header, $payload, $sig] = $parts;
-    $expected = base64_encode(hash_hmac('sha256', "$header.$payload", JWT_SECRET, true));
-    if (!hash_equals($expected, $sig)) return false;
-    $data = json_decode(base64_decode($payload), true);
+    [$h, $p, $s] = $parts;
+    $expected = base64_encode(hash_hmac('sha256', "$h.$p", JWT_SECRET, true));
+    if (!hash_equals($expected, $s)) return false;
+    $data = json_decode(base64_decode($p), true);
     if ($data['exp'] < time()) return false;
     return $data;
 }
@@ -116,11 +116,38 @@ function verifyToken($token) {
 function requireAuth() {
     $headers = getallheaders();
     $auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-    if (!$auth || !str_starts_with($auth, 'Bearer ')) {
-        errorResponse('Unauthorized', 401);
-    }
-    $token = substr($auth, 7);
-    $data = verifyToken($token);
+    if (!$auth || !str_starts_with($auth, 'Bearer ')) errorResponse('Unauthorized', 401);
+    $data = verifyToken(substr($auth, 7));
     if (!$data) errorResponse('Invalid or expired token', 401);
     return $data;
+}
+
+function sendEmail($to, $subject, $htmlBody, $replyTo = '', $replyToName = '') {
+    if (!SMTP_PASS) {
+        $headers  = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n";
+        $headers .= "From: ArtSphere <" . SMTP_USER . ">\r\n";
+        if ($replyTo) $headers .= "Reply-To: $replyToName <$replyTo>\r\n";
+        return @mail($to, $subject, $htmlBody, $headers);
+    }
+    try {
+        $socket = @fsockopen('ssl://smtp.gmail.com', 465, $errno, $errstr, 10);
+        if (!$socket) return false;
+        fgets($socket, 512);
+        fputs($socket, "EHLO artsphere\r\n");
+        while ($l = fgets($socket, 512)) { if ($l[3] === ' ') break; }
+        fputs($socket, "AUTH LOGIN\r\n"); fgets($socket, 512);
+        fputs($socket, base64_encode(SMTP_USER) . "\r\n"); fgets($socket, 512);
+        fputs($socket, base64_encode(SMTP_PASS) . "\r\n");
+        $auth = fgets($socket, 512);
+        if (strpos($auth, '235') === false) { fclose($socket); return false; }
+        fputs($socket, "MAIL FROM:<" . SMTP_USER . ">\r\n"); fgets($socket, 512);
+        fputs($socket, "RCPT TO:<$to>\r\n"); fgets($socket, 512);
+        fputs($socket, "DATA\r\n"); fgets($socket, 512);
+        $rh = $replyTo ? "Reply-To: $replyToName <$replyTo>\r\n" : '';
+        fputs($socket, "From: ArtSphere <" . SMTP_USER . ">\r\nTo: $to\r\nSubject: $subject\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n{$rh}\r\n$htmlBody\r\n.\r\n");
+        $r = fgets($socket, 512);
+        fputs($socket, "QUIT\r\n");
+        fclose($socket);
+        return strpos($r, '250') !== false;
+    } catch (Exception $e) { return false; }
 }

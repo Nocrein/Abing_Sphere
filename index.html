@@ -7,38 +7,39 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="/assets/css/main.css" />
 </head>
 <body>
 
   <!-- NAV -->
   <nav class="nav" id="nav">
-    <a href="#" class="nav-logo" onclick="showPage('home')">
-      <span class="logo-mark">◎</span>
-      ArtSphere
+    <a class="nav-logo" onclick="showPage('home'); return false;" href="#">
+      <span class="logo-mark">◎</span> ArtSphere
     </a>
     <ul class="nav-links">
-      <li><a href="#" onclick="showPage('home')" data-page="home">Home</a></li>
-      <li><a href="#" onclick="showPage('gallery')" data-page="gallery">Gallery</a></li>
-      <li><a href="#" onclick="showPage('contact')" data-page="contact">Contact</a></li>
-      <li><a href="admin/login.html" class="nav-admin">Admin</a></li>
+      <li><a href="#" data-page="home"    onclick="showPage('home');    return false;">Home</a></li>
+      <li><a href="#" data-page="gallery" onclick="showPage('gallery'); return false;">Gallery</a></li>
+      <li><a href="#" data-page="contact" onclick="showPage('contact'); return false;">Contact</a></li>
+      <li><a href="/admin/login.html" class="nav-admin">Admin</a></li>
     </ul>
     <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
       <span></span><span></span><span></span>
     </button>
   </nav>
 
-  <!-- HERO -->
+  <!-- ═══════════════ HOME PAGE ═══════════════ -->
   <section class="page active" id="page-home">
+
+    <!-- HERO -->
     <div class="hero">
       <div class="hero-bg"></div>
       <div class="hero-content">
         <p class="hero-eyebrow">Welcome to</p>
         <h1 class="hero-title">Art<em>Sphere</em></h1>
-        <p class="hero-sub">A personal archive of original artworks — available for purchase and custom commissions.</p>
+        <p class="hero-sub" id="heroSub">A personal archive of original artworks — available for purchase and custom commissions.</p>
         <div class="hero-actions">
           <button class="btn btn-primary" onclick="showPage('gallery')">Explore Gallery</button>
-          <button class="btn btn-ghost" onclick="showPage('contact')">Commission a Piece</button>
+          <button class="btn btn-ghost"   onclick="showPage('contact')">Commission a Piece</button>
         </div>
       </div>
       <div class="hero-scroll" onclick="showPage('gallery')">
@@ -52,12 +53,10 @@
       <div class="container">
         <div class="section-header">
           <h2>Recent Works</h2>
-          <a href="#" onclick="showPage('gallery')" class="link-arrow">View all →</a>
+          <a href="#" onclick="showPage('gallery'); return false;" class="link-arrow">View all →</a>
         </div>
         <div class="artwork-grid" id="featuredGrid">
-          <div class="loading-state">
-            <div class="spinner"></div>
-          </div>
+          <div class="loading-state"><div class="spinner"></div></div>
         </div>
       </div>
     </section>
@@ -68,37 +67,36 @@
         <div class="about-text">
           <span class="label">About the Artist</span>
           <h2>Crafting Moments<br><em>Into Art</em></h2>
-          <p>Each piece in this archive is created with intention — exploring texture, emotion, and the quiet beauty found in everyday moments.</p>
+          <p id="artistBio">Each piece in this archive is created with intention — exploring texture, emotion, and the quiet beauty found in everyday moments.</p>
           <p>Available for purchase and open for commissions. Every artwork ships carefully packaged and signed.</p>
           <button class="btn btn-primary" onclick="showPage('contact')">Get in Touch</button>
         </div>
-        <div class="about-accent">
-          <div class="accent-circle"></div>
-          <div class="accent-ring"></div>
+        <div class="about-media">
+          <img id="artistPhoto" src="" alt="Artist photo" style="display:none">
+          <div class="about-accent" id="aboutAccent">
+            <div class="accent-circle"></div>
+            <div class="accent-ring"></div>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- FOOTER -->
     <footer class="footer">
       <div class="container footer-inner">
-        <div class="footer-logo">
-          <span class="logo-mark">◎</span> ArtSphere
-        </div>
+        <div class="footer-logo"><span class="logo-mark">◎</span> ArtSphere</div>
         <p class="footer-copy">© <span id="year"></span> ArtSphere. All rights reserved.</p>
-        <a href="#" onclick="showPage('contact')" class="footer-link">Contact & Commissions</a>
+        <a href="#" onclick="showPage('contact'); return false;" class="footer-link">Contact & Commissions</a>
       </div>
     </footer>
   </section>
 
-  <!-- GALLERY PAGE -->
+  <!-- ═══════════════ GALLERY PAGE ═══════════════ -->
   <section class="page" id="page-gallery">
     <div class="page-hero mini">
       <h1>Gallery</h1>
       <p>Browse the full collection</p>
     </div>
     <div class="container section">
-      <!-- Filters -->
       <div class="gallery-controls">
         <div class="search-wrap">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -108,16 +106,14 @@
           <button class="tab active" onclick="filterCategory('All', this)">All</button>
         </div>
       </div>
-
       <div class="artwork-grid large" id="galleryGrid">
         <div class="loading-state"><div class="spinner"></div></div>
       </div>
-
       <div class="pagination" id="galleryPagination"></div>
     </div>
   </section>
 
-  <!-- ARTWORK DETAIL PAGE -->
+  <!-- ═══════════════ DETAIL PAGE ═══════════════ -->
   <section class="page" id="page-detail">
     <div class="container section">
       <button class="back-btn" onclick="goBack()">← Back</button>
@@ -125,7 +121,7 @@
     </div>
   </section>
 
-  <!-- CONTACT PAGE -->
+  <!-- ═══════════════ CONTACT PAGE ═══════════════ -->
   <section class="page" id="page-contact">
     <div class="page-hero mini">
       <h1>Contact</h1>
@@ -194,9 +190,7 @@
     <img src="" alt="" id="lightboxImg">
   </div>
 
-  <!-- TOAST -->
   <div class="toast" id="toast"></div>
-
-  <script src="assets/js/main.js"></script>
+  <script src="/assets/js/main.js"></script>
 </body>
 </html>
